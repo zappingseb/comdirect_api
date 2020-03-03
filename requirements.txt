@@ -1,0 +1,3 @@
+requests>=2.22.0
+Pillow>=7.0.0
+ynab-python>=1.0.0
