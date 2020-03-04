@@ -217,7 +217,7 @@ class ComdirectConnector:
         else:
             exit("Please use 'login' procedure first")
 
-    def get_transactions(self, konto_text="Girokonto", iban = None):
+    def get_transactions(self, konto_text="Girokonto", iban=None, nr_transactions=100):
         """Receive dictionary of transactions
 
         this method will receive the latest transactions for an account indentified
@@ -226,6 +226,7 @@ class ComdirectConnector:
 
         :param konto_text: (str) A account name such as `Girokonto` or `Tagesgeld PLUS`
         :param iban: (str) The IBAN of the account to get transactions from
+        :param nr_transactions (int): How many transcations to draw from API
         :return:
         """
         self.get_accounts()
@@ -251,7 +252,7 @@ class ComdirectConnector:
                 "x-http-request-info": str({'clientRequestId': {'sessionId': self.session_id,
                                                                 'requestId': self.request_id}}),
                 'Content-Type': 'application/json'
-            })
+            }, params={"paging-count": int(nr_transactions)})
         # Return transaction in case it was successfull
         if transactions_call.status_code == 200:
             return transactions_call.json()["values"]

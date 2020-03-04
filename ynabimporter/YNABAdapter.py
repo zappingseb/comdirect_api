@@ -86,7 +86,9 @@ class YNABAdapter:
                 if dt.strptime(transaction['bookingDate'], '%Y-%m-%d') >= dt.strptime(from_date, '%Y-%m-%d'):
                     trans_amount = float(transaction['amount']['value'])
                     trans_date = transaction['bookingDate']
-                    trans_memo = re.match('01(.+)02', transaction['remittanceInfo']).group(1)
+                    trans_memo = transaction['remittanceInfo'].replace("01", "", 1).replace("02", "", 1).replace(
+                        "03", "", 1).replace("04", "", 1)
+                    trans_memo = (trans_memo.strip()[:197] + "...") if len(trans_memo.strip()) > 198 else trans_memo
                     trans_cleared = 'cleared'
                     import_id = transaction['reference']
                     self.__create_transaction(amount=trans_amount, memo=trans_memo, trans_date=trans_date,
@@ -138,6 +140,7 @@ if __name__ == '__main__':
     secret_class.read_client_id_secret('C:/Users/wolfs25/Desktop/comdirect_access.json')
     comdirect_connector = ComdirectConnector.ComdirectConnector(secrets=secret_class)
     comdirect_connector.login()
+    transactions = comdirect_connector.get_transactions()
 
     with open('C:/Users/wolfs25/Desktop/ynab_token.json', 'r') as json_file:
         json_dict = json.load(json_file)
