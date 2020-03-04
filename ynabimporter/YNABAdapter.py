@@ -88,7 +88,11 @@ class YNABAdapter:
                     trans_date = transaction['bookingDate']
                     trans_memo = transaction['remittanceInfo'].replace("01", "", 1).replace("02", "", 1).replace(
                         "03", "", 1).replace("04", "", 1)
-                    trans_memo = (trans_memo.strip()[:197] + "...") if len(trans_memo.strip()) > 198 else trans_memo
+                    trans_memo = (trans_memo.strip()[:179] + "...") if len(trans_memo.strip()) > 179 else trans_memo
+                    trans_remitter = transaction["remitter"]["holderName"]
+                    trans_remitter = (trans_remitter.strip()[:20]) \
+                        if len(trans_remitter.strip()) > 20 else trans_remitter
+                    trans_memo = trans_remitter + ":" + trans_memo
                     trans_cleared = 'cleared'
                     import_id = transaction['reference']
                     self.__create_transaction(amount=trans_amount, memo=trans_memo, trans_date=trans_date,
