@@ -88,10 +88,13 @@ class YNABAdapter:
                     trans_date = transaction['bookingDate']
                     trans_memo = transaction['remittanceInfo'].replace("01", "", 1).replace("02", "", 1).replace(
                         "03", "", 1).replace("04", "", 1)
-                    trans_memo = (trans_memo.strip()[:179] + "...") if len(trans_memo.strip()) > 179 else trans_memo
-                    trans_remitter = transaction["remitter"]["holderName"]
-                    trans_remitter = (trans_remitter.strip()[:20]) \
-                        if len(trans_remitter.strip()) > 20 else trans_remitter
+                    trans_memo = (trans_memo.strip()[:177] + "...") if len(trans_memo.strip()) > 179 else trans_memo
+                    if transaction["remitter"]:
+                        trans_remitter = transaction["remitter"]["holderName"]
+                        trans_remitter = (trans_remitter.strip()[:19]) \
+                            if len(trans_remitter.strip()) > 19 else trans_remitter
+                    else:
+                        trans_remitter=''
                     trans_memo = trans_remitter + ":" + trans_memo
                     trans_cleared = 'cleared'
                     import_id = transaction['reference']
@@ -153,4 +156,4 @@ if __name__ == '__main__':
         adapter.get_budgets()
         budget_id = input('Which Budget would you like to add transactions to? [copy ID]:')
 
-    adapter.create_comdirect_transactions(from_date='2020-03-03', account_id = None, budget_id = budget_id)
+    adapter.create_comdirect_transactions(from_date='2020-02-20', account_id = None, budget_id = budget_id)
