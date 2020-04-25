@@ -132,27 +132,46 @@ class ComdirectConnector:
                 201:
             self._latest_request = "validate_response"
             excerpt = json.loads(self._requests[self._requests.__len__() - 1].headers["x-once-authentication-info"])
-            tmp_image = tempfile.TemporaryFile(mode="w+b", suffix=".png")
-            tmp_image.write(base64.b64decode(excerpt["challenge"]))
-            img = Image.open(tmp_image)
-            img.show()
-            tmp_image.close()
-            tan = input('Please insert the Photo TAN: ')
-            current_request = requests.patch(
-                url=self.endpoint + "api/session/clients/user/v1/sessions/" + self.session_uuid,
-                json={
-                    "identifier": self.session_uuid,
-                    "sessionTanActive": True,
-                    "activated2FA": True
-                }, headers={
-                    "Accept": "application/json",
-                    'Content-Type': 'application/json',
-                     "Authorization": "Bearer " + self.access_token,
-                    "x-http-request-info": str(
-                        {'clientRequestId': {'sessionId': self.session_id, 'requestId': self.request_id}}),
-                    "x-once-authentication-info": '{{\"id\": \"{tan_id}\"}}'.format(tan_id=excerpt["id"]),
-                    "x-once-authentication": tan
-                })
+
+            if excerpt['typ'] == 'P_TAN':
+                tmp_image = tempfile.TemporaryFile(mode="w+b", suffix=".png")
+                tmp_image.write(base64.b64decode(excerpt["challenge"]))
+                img = Image.open(tmp_image)
+                img.show()
+                tmp_image.close()
+                tan = input('Please insert the Photo TAN: ')
+                current_request = requests.patch(
+                    url=self.endpoint + "api/session/clients/user/v1/sessions/" + self.session_uuid,
+                    json={
+                        "identifier": self.session_uuid,
+                        "sessionTanActive": True,
+                        "activated2FA": True
+                    }, headers={
+                        "Accept": "application/json",
+                        'Content-Type': 'application/json',
+                         "Authorization": "Bearer " + self.access_token,
+                        "x-http-request-info": str(
+                            {'clientRequestId': {'sessionId': self.session_id, 'requestId': self.request_id}}),
+                        "x-once-authentication-info": '{{\"id\": \"{tan_id}\"}}'.format(tan_id=excerpt["id"]),
+                        "x-once-authentication": tan
+                    })
+            else:
+                print("Logging in via P_TAN_PUSH, please use your phone to allow the App to access comdirect.")
+                input('Press ENTER after "Freigeben"...')
+                current_request = requests.patch(
+                    url=self.endpoint + "api/session/clients/user/v1/sessions/" + self.session_uuid,
+                    json={
+                        "identifier": self.session_uuid,
+                        "sessionTanActive": True,
+                        "activated2FA": True
+                    }, headers={
+                        "Accept": "application/json",
+                        'Content-Type': 'application/json',
+                        "Authorization": "Bearer " + self.access_token,
+                        "x-http-request-info": str(
+                            {'clientRequestId': {'sessionId': self.session_id, 'requestId': self.request_id}}),
+                        "x-once-authentication-info": '{{\"id\": \"{tan_id}\"}}'.format(tan_id=excerpt["id"])
+                    })
             if current_request.status_code == 200:
                 self._requests.append(current_request)
                 print("Successfully validated TAN")
