@@ -33,11 +33,12 @@ class YNABAdapter:
         self.transactions = None
         self.budget_id = None
 
-    def __create_transaction(self, amount, memo, trans_date, account_id, api_instance, import_id, cleared='cleared'):
+    def __create_transaction(self, amount, memo, payee_name, trans_date, account_id, api_instance, import_id, cleared='cleared'):
         """create a single transaction in YNAB
 
         :param amount: (float) Amount of the transaction
         :param memo: (str) memo written into YNAB
+        :param payee_name: (str) Name of the company booking the money
         :param trans_date: (str) date of the transaction as `YYYY-MM-DD`
         :param account_id: (str) ID of the bank account the transaction should go to
         :param api_instance: (ynab.TransactionsApi) connection
@@ -53,6 +54,7 @@ class YNABAdapter:
                 cleared=cleared,
                 import_id=import_id,
                 amount=int(round(amount * 1000)),
+                payee_name=payee_name,
                 memo=memo),
             )
             print(api_instance.create_transaction(self.budget_id, transaction))
@@ -95,10 +97,14 @@ class YNABAdapter:
                             if len(trans_remitter.strip()) > 19 else trans_remitter
                     else:
                         trans_remitter=''
-                    trans_memo = trans_remitter + ":" + trans_memo
+
+                    if re.match(re.compile('PayPal.*'), trans_remitter):
+                        trans_remitter = trans_memo.split(',', 1)[0].replace(". ","", 1)
+                        trans_memo = "PayPal: " + trans_memo.split(',', 1)[1]
                     trans_cleared = 'cleared'
                     import_id = transaction['reference']
-                    self.__create_transaction(amount=trans_amount, memo=trans_memo, trans_date=trans_date,
+                    self.__create_transaction(amount=trans_amount, memo=trans_memo, payee_name=trans_remitter,
+                                              trans_date=trans_date,
                                               account_id=account_id, cleared=trans_cleared,
                                               api_instance=api_instance, import_id = import_id)
 
@@ -135,8 +141,8 @@ class YNABAdapter:
 
 
 if __name__ == '__main__':
-    if path.exists('C:/Users/wolfs25/Desktop/comdirect_u_p.json'):
-        with open('C:/Users/wolfs25/Desktop/comdirect_u_p.json') as json_file:
+    if path.exists('C:/Users/sebas/Desktop/free/comdirect_u_p.json'):
+        with open('C:/Users/sebas/Desktop/free/comdirect_u_p.json') as json_file:
             json_dict = json.load(json_file)
             username = json_dict['username']
             password = json_dict['password']
@@ -144,12 +150,12 @@ if __name__ == '__main__':
         username = input('Comdirect User: ')
         password = input('Comdirect password: ')
     secret_class = ComdirectConnector.ComdirectSecrets(username=username, password=password)
-    secret_class.read_client_id_secret('C:/Users/wolfs25/Desktop/comdirect_access.json')
+    secret_class.read_client_id_secret('C:/Users/sebas/Desktop/free/comdirect_access.json')
     comdirect_connector = ComdirectConnector.ComdirectConnector(secrets=secret_class)
     comdirect_connector.login()
     transactions = comdirect_connector.get_transactions()
 
-    with open('C:/Users/wolfs25/Desktop/ynab_token.json', 'r') as json_file:
+    with open('C:/Users/sebas/Desktop/free/ynab_token.json', 'r') as json_file:
         json_dict = json.load(json_file)
         token = json_dict['token']
         adapter = YNABAdapter(api_key=token, comdir_connector=comdirect_connector)

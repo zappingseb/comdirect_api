@@ -36,6 +36,7 @@ class YNABComdirectConfig:
         with open(config_file, "r") as whole_config:
             config_dict = json.load(whole_config)
             token = config_dict["ynab_api"]
+
             budget_id = config_dict["budget_id"]
             account_id = config_dict["account_id"]
             if path.exists(config_dict["comdirect_u_p"]):
@@ -58,4 +59,4 @@ class YNABComdirectConfig:
 
 
 if __name__ == '__main__':
-    YNABComdirectConfig("C:/Users/wolfs25/Desktop/ynab_comdirect_conf.json")
+    YNABComdirectConfig("C:/Users/sebas/Desktop/free/ynab_comdirect_conf.json")
