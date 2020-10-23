@@ -6,7 +6,7 @@ from datetime import date
 from datetime import datetime as dt
 import re
 from os import path
-
+from tempfile import TemporaryFile
 
 class YNABAdapter:
     """Comdirect YNAB Adapter
@@ -17,10 +17,12 @@ class YNABAdapter:
         comdir_connector (ComdirectConnector) An object created that has already
         connected with the comdirect API via the `.login()` method
 
+        idfile A temporary txt file where to write in IDS of transactions that were already imported
+
     Return:
         An object to move comdirect transactions over to YNAB
     """
-    def __init__(self, api_key=None, comdir_connector=None):
+    def __init__(self, api_key=None, comdir_connector=None, idfile = "C:/Users/sebas/Desktop/free/ids.txt"):
         if type(comdir_connector).__name__ != 'ComdirectConnector':
             exit('You must provide a ComdirectConnector object')
         self.comdirect_connector = comdir_connector
@@ -32,8 +34,17 @@ class YNABAdapter:
 
         self.transactions = None
         self.budget_id = None
+        self.tempfile = None
 
-    def __create_transaction(self, amount, memo, payee_name, trans_date, account_id, api_instance, import_id, cleared='cleared'):
+        if path.isfile(idfile):
+            self.tempfile = idfile
+            if self.tempfile is not None:
+                with open(self.tempfile, "r") as file_object :
+                    self.ids_imported = file_object.read()
+
+
+    def __create_transaction(self, amount, memo, payee_name, trans_date, account_id, api_instance, import_id,
+                             cleared='cleared'):
         """create a single transaction in YNAB
 
         :param amount: (float) Amount of the transaction
@@ -57,7 +68,20 @@ class YNABAdapter:
                 payee_name=payee_name,
                 memo=memo),
             )
-            print(api_instance.create_transaction(self.budget_id, transaction))
+            already_sent = False
+            # Check if the ID was already imported not too struggle too much with the YNAB API
+            # because of the rate limitations
+            if self.ids_imported is not None:
+                if not import_id in self.ids_imported:
+                    already_sent = False
+                else:
+                    already_sent = True
+            if not already_sent:
+                print(api_instance.create_transaction(self.budget_id, transaction))
+                with open(self.tempfile, "a") as file_object:
+                    file_object.write(import_id + "\n")
+            else:
+                print("Skippping, already imported. see tempfile: " + self.tempfile)
         except ApiException as e:
             print('Exception when calling AccountsApi->get_account_by_id: %s\n' % e)
 

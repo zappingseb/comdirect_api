@@ -93,12 +93,14 @@ comdirect_connector.login()
 ```
 
 To sync the last 100 transactions from the comdirect to YNAB, you need to initialize
-a YNABAdapter object
+a YNABAdapter object. Please create a `tempfile.txt` before you start. This file stores the transactions
+already sent to YNAB to save your API calls not to send transactions twice.
 
 ```python
 from ynabimporter import YNABAdapter
 # Create a YNAB adapter
-adapter = YNABAdapter.YNABAdapter(api_key="<YNAB API TOKEN>", comdir_connector=comdirect_connector)
+adapter = YNABAdapter.YNABAdapter(api_key="<YNAB API TOKEN>", comdir_connector=comdirect_connector,
+  idfile="tempfile.txt")
 # List all your budgets
 adapter.get_budgets()
 # Insert the ID of the budget to work in
@@ -132,7 +134,8 @@ You can also sync the accounts via a one line call. Therefore you need to define
   "comdirect_u_p": "comdirect_u_p.json",
   "budget_id": "<YNAB budget ID such as XXXXXXXX-4346-4131-ac36-fc28b7082ab5>",
   "account_id": "<YNAB account ID such as XXXXXXXX-4d5b-4547-8f51-ce5f9d9a2cf5>",
-  "from_date": "2020-02-20"
+  "from_date": "2020-02-20",
+  "id_file": "tempfile.txt"
 }
 ```
 

@@ -53,7 +53,9 @@ class YNABComdirectConfig:
             comdirect_connector = ComdirectConnector.ComdirectConnector(secrets=secret_class)
             comdirect_connector.login()
             adapter = YNABAdapter.YNABAdapter(api_key=token,
-                                              comdir_connector=comdirect_connector)
+                                              comdir_connector=comdirect_connector,
+                                              idfile=config_dict["id_file"]
+                                              )
             adapter.create_comdirect_transactions(from_date=config_dict["from_date"], account_id=account_id,
                                                   budget_id=budget_id)
 

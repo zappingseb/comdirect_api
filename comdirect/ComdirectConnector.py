@@ -236,7 +236,7 @@ class ComdirectConnector:
         else:
             exit("Please use 'login' procedure first")
 
-    def get_transactions(self, konto_text="Girokonto", iban=None, nr_transactions=100):
+    def get_transactions(self, konto_text="Girokonto", iban=None, nr_transactions=200):
         """Receive dictionary of transactions
 
         this method will receive the latest transactions for an account indentified
