@@ -1,7 +1,7 @@
 import re
 from datetime import date, datetime as dt
 import pandas as pd
-from ynabimporter import base_ynab_adapter
+from base import base_ynab_adapter
 import ynab
 
 class ComdirectYNABAdapter(base_ynab_adapter.BaseYNABAdapter):

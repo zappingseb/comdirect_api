@@ -1,7 +1,7 @@
 import json
 from os import path
 from comdirect import ComdirectConnector
-from ynabimporter import comdirect_ynab_adpapter
+from comdirect import comdirect_ynab_adpapter
 
 class YNABComdirectConfig:
     def __init__(self, config_file=None):
@@ -32,10 +32,10 @@ class YNABComdirectConfig:
                 api_key=token,
                 comdir_connector=comdirect_connector,
                 idfile=config_dict["id_file"],
-                # use_csv=config_dict.get("use_csv", False),
+                use_csv=config_dict.get("use_csv", False),
                 account_id=account_id,
                 budget_id=budget_id,
-                use_csv=True,
+                # use_csv=True,
             )
 
             adapter.create_comdirect_transactions(

@@ -2,7 +2,7 @@
 import pandas as pd
 from datetime import datetime as dt
 import ynab
-from ynabimporter import base_ynab_adapter
+from base import base_ynab_adapter
 import string
 import random
 

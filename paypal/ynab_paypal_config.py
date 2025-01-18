@@ -1,6 +1,6 @@
 import json
 from os import path
-from ynabimporter import paypal_ynab_adapter
+from paypal import paypal_ynab_adapter
 
 class YNABPayPalConfig:
     def __init__(self, config_file=None, csv=None):

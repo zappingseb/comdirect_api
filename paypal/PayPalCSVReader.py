@@ -1,1 +1,0 @@
-# Create a Class as in Comdirect Connector that can read PayPal CSV files

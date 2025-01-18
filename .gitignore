@@ -3,3 +3,4 @@
 *.csv
 **/__pyache__/
 *.pyc
+*.zip
