@@ -38,6 +38,7 @@ class YNABComdirectConfig:
             token = config_dict["ynab_api"]
 
             budget_id = config_dict["budget_id"]
+            paypal_account_id = config_dict["paypal_account_id"]
             account_id = config_dict["account_id"]
             if path.exists(config_dict["comdirect_u_p"]):
                 with open(config_dict["comdirect_u_p"]) as json_file:
@@ -54,10 +55,11 @@ class YNABComdirectConfig:
             comdirect_connector.login()
             adapter = YNABAdapter.YNABAdapter(api_key=token,
                                               comdir_connector=comdirect_connector,
-                                              idfile=config_dict["id_file"]
+                                              idfile=config_dict["id_file"],
+                                              use_csv = False
                                               )
             adapter.create_comdirect_transactions(from_date=config_dict["from_date"], account_id=account_id,
-                                                  budget_id=budget_id)
+                                                  budget_id=budget_id, paypal_account_id = paypal_account_id)
 
 
 if __name__ == '__main__':

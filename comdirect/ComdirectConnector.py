@@ -61,6 +61,7 @@ class ComdirectConnector:
                                                 'password': self.secrets.password,
                                                 'grant_type': 'password'
                                             }))
+        print(self._requests[0].json())
         self.access_token = self._requests[0].json()["access_token"]
 
     def get_session_status(self):
@@ -271,12 +272,13 @@ class ComdirectConnector:
                 "x-http-request-info": str({'clientRequestId': {'sessionId': self.session_id,
                                                                 'requestId': self.request_id}}),
                 'Content-Type': 'application/json'
-            }, params={"paging-count": int(nr_transactions)})
+            }, params={"paging-count": int(nr_transactions), "transactionState":"BOOKED", "paging-first": 0})
         # Return transaction in case it was successfull
         if transactions_call.status_code == 200:
             return transactions_call.json()["values"]
         else:
             print("Transactions could not be received")
+            print(transactions_call.text)
 
 
 class ComdirectSecrets:
@@ -312,8 +314,10 @@ class ComdirectSecrets:
 
 if __name__ == "__main__":
     # Experimental connection to API
-    secret_class = ComdirectSecrets(username= "12345678", password="123456")
-    secret_class.read_client_id_secret("comdirect_access.json")
+    with open("C:/Users/sebas/Desktop/free/comdirect_u_p.json") as json_file:
+        data = json.load(json_file)
+    secret_class = ComdirectSecrets(username=data['username'], password=data['password'])
+    secret_class.read_client_id_secret("C:/Users/sebas/Desktop/free/comdirect_access.json")
     api_class = ComdirectConnector(secrets=secret_class)
     api_class.login()
     print(api_class.get_transactions())
