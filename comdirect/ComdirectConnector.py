@@ -16,7 +16,7 @@ class ComdirectConnector:
         secrets (ComdirectSecrets) An object containing all informations to connect with
         the comdirect API
     """
-    def __init__(self, secrets=None):
+    def __init__(self, secrets=None, manual_mode = True):
         if type(secrets).__name__ != "ComdirectSecrets":
             exit("You must provide a ComdirectSecrets object")
         self.endpoint = "https://api.comdirect.de/"
@@ -30,6 +30,7 @@ class ComdirectConnector:
         self.refresh_token = None
         self.session_uuid = None
         self._accounts = {}
+        self._manual_mode = manual_mode
 
     def login(self):
         """Run through whole oauth process
@@ -158,7 +159,8 @@ class ComdirectConnector:
                     })
             else:
                 print("Logging in via P_TAN_PUSH, please use your phone to allow the App to access comdirect.")
-                input('Press ENTER after "Freigeben"...')
+                if self._manual_mode == True:
+                    input('Press ENTER after "Freigeben"...')
                 current_request = requests.patch(
                     url=self.endpoint + "api/session/clients/user/v1/sessions/" + self.session_uuid,
                     json={
