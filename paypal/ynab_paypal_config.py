@@ -28,5 +28,5 @@ class YNABPayPalConfig:
 if __name__ == '__main__':
     YNABPayPalConfig(
         "C:/Users/sebas/Desktop/free/ynab_comdirect_conf.json",
-        csv="C:/Users/sebas/Downloads/Download(6).csv"
+        csv="C:/Users/sebas/Downloads/Download(7).csv"
     )

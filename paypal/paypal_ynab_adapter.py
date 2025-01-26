@@ -74,11 +74,7 @@ class PayPalYNABAdapter(base_ynab_adapter.BaseYNABAdapter):
             trans_payee = str(transaction['Name']).strip() if pd.notna(transaction['Name']) else 'Transfer Comdirect'
             trans_payee = trans_payee[:50]
 
-            import_id = "PP-{0}-{1}-{2}".format(
-                trans_date,
-                abs(int(trans_amount * 100)),
-                ''.join(random.choice(string.ascii_letters) for i in range(4))
-            )
+            import_id = 'PP.' + transaction['Transaktionscode']
 
             self._create_transaction(
                 amount=trans_amount,
