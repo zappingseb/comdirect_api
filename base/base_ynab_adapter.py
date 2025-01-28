@@ -46,11 +46,14 @@ class BaseYNABAdapter:
             import_id (str): Unique import ID
             cleared (str): Transaction cleared status
         """
+        account_id = self.account_id or account_id
+        if not account_id:
+            raise ValueError("account_id must be provided")
         try:
             if not self.use_csv:
                 transaction = ynab.SaveTransactionWrapper(
                     transaction=ynab.SaveTransaction(
-                        account_id=self.account_id,
+                        account_id=account_id,
                         date=trans_date,
                         cleared=cleared,
                         import_id=import_id,
@@ -77,13 +80,14 @@ class BaseYNABAdapter:
                     print("Transaction saved to CSV", transaction)
                     self.intermediate_df = self.intermediate_df.append(transaction, ignore_index=True)
                 else:
-                    print(api_instance.create_transaction(self.budget_id, transaction))
+                    print("Sending transaction to API - " + import_id, flush= True)
+                    print(api_instance.create_transaction(self.budget_id, transaction), flush=True)
                     
                 # Record imported transaction
                 with open(self.tempfile, "a") as file_object:
                     file_object.write(import_id + "\n")
             else:
-                print(f"Skipping already imported transaction: {import_id}")
+                print(f"Skipping already imported transaction: {import_id}", flush=True)
                 
         except ApiException as e:
             print(f'Exception when creating transaction: {e}')

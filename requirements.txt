@@ -5,3 +5,4 @@ pandas<1.2.0
 Werkzeug==2.0.3
 requests==2.23.0
 git+https://github.com/python-pillow/Pillow.git@7.1.1
+pdfplumber

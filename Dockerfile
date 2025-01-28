@@ -20,6 +20,8 @@ RUN pip install -r requirements.txt
 COPY base/ ./base/
 COPY comdirect/ ./comdirect/
 COPY paypal/ ./paypal/
+COPY hanseatic/ ./hanseatic/
+COPY csv_adapter/ ./csv_adapter/
 COPY server/ ./server/
 
 ENV PYTHONPATH=/app

@@ -17,7 +17,7 @@ class YNABPayPalConfig:
                 account_id=config_dict["paypal_account_id"],
                 api_key=config_dict["ynab_api"],
                 csv_path=csv,
-                idfile=config_dict["id_file"],
+                idfile=path.join(path.dirname(config_file), config_dict["id_file"]),
                 use_csv=config_dict.get("use_csv", False)
             )
 

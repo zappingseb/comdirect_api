@@ -1,13 +1,28 @@
 from flask import Flask, request, jsonify
+import pdfplumber
 import os
 from dotenv import load_dotenv
 from comdirect.ynab_comdirect_config import YNABComdirectConfig
 from paypal.ynab_paypal_config import YNABPayPalConfig
+from hanseatic.hanseatic_ynab_config import YNABHanseaticConfig
+from csv_adapter.ynab_csv_config import YNABCSVConfig
 import tempfile
+import re
+from datetime import datetime
+# import debugpy
+# debugpy.listen(("0.0.0.0", 5678))
+# print("Waiting for debugger to attach...")
+# debugpy.wait_for_client()
+
 
 app = Flask(__name__)
+if os.name == "nt":  # 'nt' is used for Windows
+    env_path = "C:/Users/sebas/Desktop/free/.env"
+else:
+    env_path = "/config/.env"
 
-load_dotenv('/config/.env')
+load_dotenv(env_path)
+
 API_SECRET = os.getenv('API_SECRET')
 
 def validate_secret(request):
@@ -47,6 +62,34 @@ def import_data():
                 YNABPayPalConfig(config_path, csv=temp_file.name)
             os.unlink(temp_file.name)
             return jsonify({'message': 'PayPal import successful'})
+        
+        elif import_type == 'csv':
+            if 'file' not in request.files:
+                return jsonify({'error': 'No file provided'}), 400
+                
+            file = request.files['file']
+            if file.filename == '':
+                return jsonify({'error': 'No file selected'}), 400
+                
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                file.save(temp_file.name)
+                YNABCSVConfig(config_path, csv=temp_file.name)
+            os.unlink(temp_file.name)
+            return jsonify({'message': 'CSV import successful'})
+        
+        elif import_type == 'hanseatic':
+            if 'file' not in request.files:
+                return jsonify({'error': 'No file provided'}), 400
+                
+            file = request.files['file']
+            if file.filename == '':
+                return jsonify({'error': 'No file selected'}), 400
+
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                file.save(temp_file.name)
+                YNABHanseaticConfig(config_path, temp_file.name)
+            os.unlink(temp_file.name)
+            return jsonify({'message': 'Hanseatic import successful'})
             
         else:
             return jsonify({'error': 'Invalid import type'}), 400
