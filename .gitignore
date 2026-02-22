@@ -1,0 +1,7 @@
+**/*.csv
+.idea/
+*.csv
+**/__pyache__/
+*.pyc
+*.zip
+._*.py

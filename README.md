@@ -30,12 +30,13 @@ Store your `client_id` and `client_secret` inside a json file called e.g. `secre
 
 ```json
 {
- "client_id":"User_XXXXXXX",
- "client_secret":"XXXXXXXX"
+  "client_id": "User_XXXXXXX",
+  "client_secret": "XXXXXXXX"
 }
 ```
 
 ### Use python
+
 ```python
 import comdirect
 
@@ -50,7 +51,7 @@ comdirect_secrets.read_client_id_secret('secrets.json')
 # It will open a PhotoTAN file that you need to solve. The TAN will be typed directly
 # into the console
 comdir_con = comdirect.ComdirectConnector.ComdirectConnector(secrets=comdirect_secrets)
-comdir_con.login() 
+comdir_con.login()
 
 # To receive transactions for your 'Girokonto' you can call:
 print(comdir_con.get_transactions())
@@ -69,6 +70,7 @@ The package here presents two ways of syncing YNAB and Comdirect.
 ### Sync YNAB and comdirect via commandline
 
 First you start with importing the Adapters
+
 ```python
 import json
 from os import path
@@ -148,3 +150,29 @@ YNABComdirectConfig.YNABComdirectConfig("config.json")
 
 This will automatically ask you to solve a PhotoTAN from comdirect via the console and
 if properly done, sync the desired transactions with your YNAB account.
+
+# Dockerized Setup
+
+You need to place the config file in /path/to/volume
+and a .env file like
+
+```
+API_SECRET="abc"
+```
+
+Then you can create your docker container via
+
+```sh
+docker build -t ynab-import .
+docker run -d -p 80:80 -v /path/to/volume:/config ynab-import
+```
+
+And run a test run via:
+
+```sh
+# Start comdirect login
+curl -X POST "http://localhost/import?type=comdirect&what=start" -H "X-API-Secret: your_secret"
+
+# After approving in app, validate TAN
+curl -X POST "http://localhost/import?type=comdirect&what=validate_tan" -H "X-API-Secret: your_secret"
+```

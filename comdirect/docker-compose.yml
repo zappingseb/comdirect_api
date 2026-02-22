@@ -1,0 +1,106 @@
+version: "3"
+
+networks:
+  amazon_app_default:
+    external: true
+
+x-comdirect-service: &comdirect-service
+ build:
+   context: ./comdirect_api
+ image: comdirect_doc
+x-kontist-service: &kontist-service
+ build:
+   context: ./kontistYNAB
+ image: kontist_doc
+x-webapp-service: &webapp-service
+ build:
+   context: ./webapp
+ image: webapp_doc
+
+services:
+  webapp:
+    <<: *webapp-service
+    ports:
+      - "80:80"
+    environment:
+      - BACKEND_URL=http://backend:5000
+    depends_on:
+      - backend
+    env_file:
+     - "${CONFIG_PATH}/.env"
+
+  backend:
+    <<: *comdirect-service
+    ports:
+      - "5000:80"
+    volumes:
+      - "${CONFIG_PATH}:/config"
+    networks:
+      - default
+      - amazon_app_default
+
+  comdirect_liv:
+    <<: *comdirect-service
+    ports:
+      - "5001:80"
+    volumes:
+      - "${CONFIG_PATH}/comdirectLiv:/config"
+  
+  kontist_sebastian:
+    <<: *kontist-service
+    ports:
+      - "5002:80"
+    volumes:
+      - "${CONFIG_PATH}/kontistSebastian/.env:/app/.env"
+  
+
+  kontist_liv:
+    <<: *kontist-service
+    ports:
+      - "5003:80"
+    volumes:
+      - "${CONFIG_PATH}/kontistLiv/.env:/app/.env"
+
+  comdirect_sebastian:
+    <<: *comdirect-service
+    ports:
+      - "5004:80"
+    volumes:
+      - "${CONFIG_PATH}/comdirectSebastian:/config"
+
+  comdirect_liv_schmusen:
+    <<: *comdirect-service
+    ports:
+      - "5005:80"
+    volumes:
+      - "${CONFIG_PATH}/comdirectLivSchmusen:/config"
+      - "${CONFIG_PATH}/ids.txt:/basic/ids.txt"
+    networks:
+      - default
+      - amazon_app_default
+
+  amazon_categorizer:
+    build:
+      context: ./amazon_imap
+    image: amazon-categorizer:latest
+    container_name: amazon_categorizer
+    restart: unless-stopped
+    ports:
+      - "5010:5000"
+    env_file:
+      - ./amazon_imap/.env
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - default
+      - amazon_app_default
+      
