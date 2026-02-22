@@ -1,8 +1,7 @@
-flask==2.0.3
-python-dotenv==0.19.2
+flask
+python-dotenv
 git+https://github.com/davidhao3300/ynab-python.git@0.0.3
-pandas<1.2.0
-Werkzeug==2.0.3
-requests==2.23.0
-git+https://github.com/python-pillow/Pillow.git@7.1.1
-pdfplumber
+requests
+Pillow
+pandas>0.22.0 # needs to stay in last line
+pymupdf>=1.20.0

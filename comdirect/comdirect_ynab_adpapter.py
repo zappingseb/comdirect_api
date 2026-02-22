@@ -1,38 +1,57 @@
 import re
 from datetime import date, datetime as dt
-import pandas as pd
 from base import base_ynab_adapter
 import ynab
+import requests
+import os
 
 class ComdirectYNABAdapter(base_ynab_adapter.BaseYNABAdapter):
     """Comdirect-specific YNAB Adapter
-    
+
     Args:
         api_key (str): YNAB API KEY
         comdir_connector (ComdirectConnector): Connected Comdirect connector
         idfile (str): Path to store processed transaction IDs
-        amazon_csv (str): Optional path to Amazon order history CSV
         use_csv (bool): Whether to output to CSV instead of directly to YNAB
     """
-    def __init__(self, api_key=None, comdir_connector=None, idfile="ids.txt", 
-                 amazon_csv=None, use_csv=False, account_id = None, budget_id = None):
+    def __init__(self, api_key=None, comdir_connector=None, idfile="ids.txt",
+                 use_csv=False, account_id=None, budget_id=None, amazon_csv=None):
         if not comdir_connector or type(comdir_connector).__name__ != 'ComdirectConnector':
             raise ValueError('You must provide a ComdirectConnector object')
-            
+
         super().__init__(api_key=api_key, idfile=idfile, use_csv=use_csv)
-        
+
         self.comdirect_connector = comdir_connector
         self.transactions = None
-        self.amazon_data = None
         self.budget_id = budget_id
         self.account_id = account_id
 
-        if amazon_csv:
-            self.read_amazon(amazon_csv)
+        # API configuration for Amazon categorizer
+        self.amazon_api_url = os.getenv('AMAZON_API_URL', 'http://amazon_categorizer:5000')
+        self.amazon_api_secret = os.getenv('AMAZON_API_SECRET', 'amazon_categorizer_secret_key')
 
-    def read_amazon(self, file_name):
-        """Read Amazon orders from CSV"""
-        self.amazon_data = pd.read_csv(file_name)
+    def _categorize_amazon_transaction(self, transaction_text):
+        """Call the Amazon categorizer API to get category info"""
+        try:
+            print(f"[Amazon API] Calling categorizer with text: {transaction_text}", flush=True)
+            response = requests.post(
+                f'{self.amazon_api_url}/categorize',
+                json={'transaction': transaction_text},
+                headers={'X-API-Secret': self.amazon_api_secret},
+                timeout=15
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                # The API should return a category or product name
+                print(f"[Amazon API] ✓ Success (200) - Response: {data}", flush=True)
+                return data
+            else:
+                print(f"[Amazon API] ✗ Error {response.status_code} - {response.text}", flush=True)
+                return None
+        except Exception as e:
+            print(f"[Amazon API] ✗ Exception: {e}", flush=True)
+            return None
             
     def __get_transactions(self, konto_text='Girokonto', iban=None):
         """Get transactions from Comdirect connector"""
@@ -69,30 +88,45 @@ class ComdirectYNABAdapter(base_ynab_adapter.BaseYNABAdapter):
                     # Process transaction details
                     trans_amount = float(transaction['amount']['value'])
                     trans_date = transaction['bookingDate']
+                    category_id = None
                     
                     # Process memo
                     trans_memo = re.sub("\\s{2,20}0\\d{1}", "", transaction['remittanceInfo']).replace("01", "", 1)
                     trans_memo = (trans_memo.strip()[:177] + "...") if len(trans_memo.strip()) > 179 else trans_memo
 
-                    # Process remitter
+                    # Process remitter - save full name for Amazon detection before truncation
                     if transaction["remitter"]:
-                        trans_remitter = transaction["remitter"]["holderName"]
-                        trans_remitter = (trans_remitter.strip()[:19]) \
-                            if len(trans_remitter.strip()) > 19 else trans_remitter
+                        trans_remitter_full = transaction["remitter"]["holderName"]
+                        trans_remitter = (trans_remitter_full.strip()[:19]) \
+                            if len(trans_remitter_full.strip()) > 19 else trans_remitter_full
                     else:
-                        trans_remitter = re.sub("\\s{2,20}0\\d{1}", "", transaction['remittanceInfo']).replace("01", "", 1)[:15]
+                        trans_remitter_full = re.sub("\\s{2,20}0\\d{1}", "", transaction['remittanceInfo']).replace("01", "", 1)
+                        trans_remitter = trans_remitter_full[:15]
 
-                    # Handle Amazon transactions
-                    if re.match(re.compile('Amazon.*', re.I), trans_remitter):
-                        if self.amazon_data is not None:
-                            order_ids = re.findall('\\d{1,5}-\\d{5,9}-\\d{5,7}', trans_memo, re.DOTALL)
-                            for order_id in order_ids:
-                                filtered_data = self.amazon_data[self.amazon_data.order_id == order_id]
-                                if filtered_data.shape[0] > 0:
-                                    trans_memo = trans_memo.replace(order_id,
-                                                                 re.sub("\\s", "", filtered_data.iloc[0, 1][0:45]))
-                                else:
-                                    print(f"The Amazon id {order_id} is not in your Export")
+                    # Handle Amazon transactions (check full remitter name for Amazon, AMZN, or Amazon order pattern in memo)
+                    is_amazon = re.search(re.compile('amazon|amzn', re.I), trans_remitter_full) or \
+                               re.search(r'\d{3}-\d{7}-\d{7}', trans_memo)
+                    print(f"Is Amazon: {is_amazon} and reference: {transaction['reference']}", flush=True)
+                    if is_amazon:
+                        # Save original memo before modification
+                        trans_memo_original = trans_memo
+                        # Try to categorize using the API
+                        category = self._categorize_amazon_transaction(trans_memo)
+                        if category:
+                            # Use the order_number, category_id, category_name, and products per API response
+                            order_number = category.get("order_number")
+                            products = category.get("products", [])
+                            category_name = category.get("category_name")
+                            category_id = category.get("category_id")
+
+                            # Memo layout: Amazon Order <order_number>: <product1>, <product2> - <category_name>
+                            product_str = ", ".join(products) if products else "Unknown Product"
+                            trans_memo = f"Amazon Order {order_number}: {product_str} - {category_name} - {trans_memo_original}"
+                            print(f"✓ Amazon categorization SUCCESS - Order: {order_number}, Category: {category_name}, Products: {products}", flush=True)
+                        else:
+                            # Keep original memo if API call fails
+                            trans_memo = f"Amazon: {trans_memo_original}"
+                            print(f"✗ Amazon categorization FAILED - No category data returned for memo: {trans_memo_original}", flush=True)
 
                     # Handle PayPal transactions
                     if re.match(re.compile('PayPal.*', re.I), trans_remitter):
@@ -128,7 +162,8 @@ class ComdirectYNABAdapter(base_ynab_adapter.BaseYNABAdapter):
                         cleared='cleared',
                         api_instance=api_instance,
                         import_id=transaction['reference'],
-                        account_id=self.account_id
+                        account_id=self.account_id,
+                        category_id=category_id
                     )
 
         if self.use_csv:

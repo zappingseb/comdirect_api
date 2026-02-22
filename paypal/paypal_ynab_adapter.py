@@ -64,8 +64,8 @@ class PayPalYNABAdapter(base_ynab_adapter.BaseYNABAdapter):
             trans_amount = float(amount_str)
 
             memo_parts = [
-                str(transaction['Typ']).strip(),
-                str(transaction['Name']).strip(),
+                str(transaction['Typ'])[:6].strip(),
+                str(transaction['Name'])[:10].strip(),
                 str(transaction.get('Artikelbezeichnung', '')).strip()
             ]
             trans_memo = ' - '.join(filter(lambda x: x and x != 'nan', memo_parts))

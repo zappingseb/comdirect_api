@@ -2,6 +2,7 @@ import ynab
 from ynab.rest import ApiException
 import pandas as pd
 from os import path
+from datetime import datetime
 
 class BaseYNABAdapter:
     """Base YNAB Adapter for handling YNAB connections and transactions
@@ -33,9 +34,9 @@ class BaseYNABAdapter:
                 self.ids_imported = file_object.read()
 
     def _create_transaction(self, amount, memo, payee_name, trans_date, account_id, api_instance, import_id,
-                          cleared='cleared'):
+                          cleared='cleared', category_id=None):
         """Create a single transaction in YNAB
-        
+
         Args:
             amount (float): Transaction amount
             memo (str): Transaction description
@@ -45,22 +46,27 @@ class BaseYNABAdapter:
             api_instance: YNAB API instance
             import_id (str): Unique import ID
             cleared (str): Transaction cleared status
+            category_id (str): Optional YNAB category ID
         """
         account_id = self.account_id or account_id
         if not account_id:
             raise ValueError("account_id must be provided")
         try:
             if not self.use_csv:
+                transaction_dict = {
+                    "account_id": account_id,
+                    "date": trans_date,
+                    "cleared": cleared,
+                    "import_id": import_id,
+                    "amount": int(round(amount * 1000)),
+                    "payee_name": payee_name,
+                    "memo": memo
+                }
+                if category_id:
+                    transaction_dict["category_id"] = category_id
+
                 transaction = ynab.SaveTransactionWrapper(
-                    transaction=ynab.SaveTransaction(
-                        account_id=account_id,
-                        date=trans_date,
-                        cleared=cleared,
-                        import_id=import_id,
-                        amount=int(round(amount * 1000)),
-                        payee_name=payee_name,
-                        memo=memo
-                    )
+                    transaction=ynab.SaveTransaction(**transaction_dict)
                 )
             else:
                 transaction = {
@@ -71,10 +77,23 @@ class BaseYNABAdapter:
                     "payee": payee_name,
                     "memo": memo
                 }
+                if category_id:
+                    transaction["category_id"] = category_id
                 
-            # Check if already imported
-            already_sent = import_id in self.ids_imported if self.ids_imported else False
-            
+            # Check if already imported (skip for debug reference numbers)
+            skip_dedup = False
+
+            # Save original import_id before timestamp modification
+            original_import_id = import_id
+
+            # For debug transactions, append timestamp to make unique import_id
+            if skip_dedup:
+                timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+                import_id = f"{timestamp}_{import_id}"
+                already_sent = False
+            else:
+                already_sent = import_id in self.ids_imported if self.ids_imported else False
+
             if not already_sent:
                 if self.use_csv:
                     print("Transaction saved to CSV", transaction)
@@ -86,10 +105,16 @@ class BaseYNABAdapter:
                 # Record imported transaction
                 with open(self.tempfile, "a") as file_object:
                     file_object.write(import_id + "\n")
+                print(f"✓ Recorded import_id to ids.txt: {import_id}", flush=True)
             else:
                 print(f"Skipping already imported transaction: {import_id}", flush=True)
                 
         except ApiException as e:
+            # Auto-record import_ids that have conflict errors (409) - but NOT debug transactions (we want to keep retrying those)
+            if hasattr(e, 'status') and e.status == 409 and not skip_dedup:
+                print(f"Conflict detected for import_id: {original_import_id}. Recording to ids.txt", flush=True)
+                with open(self.tempfile, "a") as file_object:
+                    file_object.write(original_import_id + "\n")
             print(f'Exception when creating transaction: {e}')
 
     def get_budgets(self):

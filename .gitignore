@@ -4,3 +4,4 @@
 **/__pyache__/
 *.pyc
 *.zip
+._*.py

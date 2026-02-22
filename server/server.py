@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify
-import pdfplumber
 import os
 from dotenv import load_dotenv
 from comdirect.ynab_comdirect_config import YNABComdirectConfig
